@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalori Harian</title>
+<meta name="theme-color" content="#2f7d57">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kalori">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--ink:#1d2320;--mute:#6b746f;--line:#e4e2da;--g:#2f7d57;--gl:#e3f1ea;--o:#d9822b;--r:#c8453b}
+*{box-sizing:border-box;margin:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);padding:16px;max-width:520px;margin:0 auto;padding-bottom:60px}
+h1{font-size:20px}h2{font-size:15px;margin-bottom:10px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 14px;background:var(--g);color:#fff;font-weight:600}
+button.ghost{background:var(--gl);color:var(--g)}button.x{background:none;color:var(--mute);padding:4px 8px;font-size:18px}
+input,select{font:inherit;width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+label{font-size:12px;color:var(--mute);display:block;margin-bottom:4px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.date{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.date input{flex:1;text-align:center}.date button{padding:10px 14px}
+.ring{display:flex;align-items:center;gap:16px}
+.ring svg{flex:none}.big{font-size:30px;font-weight:700;line-height:1}
+.mute{color:var(--mute);font-size:13px}
+.bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--g)}
+.macros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.macros div{background:var(--bg);border-radius:10px;padding:8px;text-align:center}
+.macros b{display:block;font-size:16px}
+.meal h3{font-size:14px;display:flex;justify-content:space-between;margin-bottom:6px}
+.item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.item small{color:var(--mute);display:block}
+.empty{color:var(--mute);font-size:13px;padding:6px 0}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;justify-content:center;z-index:9}
+.sheet.on{display:flex}
+.panel{background:var(--card);width:100%;max-width:520px;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px}
+.list{margin-top:10px}
+.food{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-top:1px solid var(--line);cursor:pointer;font-size:14px}
+.food:active{background:var(--gl)}.food small{color:var(--mute);display:block}
+.tabs{display:flex;gap:6px;margin-bottom:10px}.tabs button{flex:1;background:var(--bg);color:var(--ink)}.tabs button.on{background:var(--g);color:#fff}
+.week{display:flex;gap:6px;align-items:flex-end;height:90px;margin-top:8px}
+.week div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:11px;color:var(--mute)}
+.week i{width:100%;background:var(--g);border-radius:5px 5px 0 0;min-height:2px}
+.note{font-size:12px;color:var(--mute);text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="top"><h1>🥗 Kalori Harian</h1><button class="ghost" id="btnSet">Target</button></div>
+
+<div class="date"><button class="ghost" id="prev">‹</button><input type="date" id="date"><button class="ghost" id="next">›</button></div>
+
+<div class="card">
+  <div class="ring">
+    <svg width="120" height="120" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="none" stroke="#e4e2da" stroke-width="12"/><circle id="arc" cx="60" cy="60" r="50" fill="none" stroke="#2f7d57" stroke-width="12" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314" transform="rotate(-90 60 60)"/></svg>
+    <div><div class="big" id="eaten">0</div><div class="mute">kkal dimakan</div><div style="margin-top:8px;font-weight:600" id="left"></div><div class="mute" id="target"></div></div>
+  </div>
+  <div class="macros"><div><b id="mP">0</b><span class="mute">Protein g</span></div><div><b id="mK">0</b><span class="mute">Karbo g</span></div><div><b id="mL">0</b><span class="mute">Lemak g</span></div></div>
+</div>
+
+<div id="meals"></div>
+
+<div class="card"><h2>7 hari terakhir</h2><div class="week" id="week"></div></div>
+<p class="note">Angka kalori adalah perkiraan per porsi umum. Data tersimpan di browser ini saja.</p>
+
+<!-- Tambah makanan -->
+<div class="sheet" id="addSheet"><div class="panel">
+  <div class="top"><h2 id="addTitle" style="margin:0">Tambah makanan</h2><button class="x" data-close>✕</button></div>
+  <div class="tabs"><button class="on" id="tabCari">Cari</button><button id="tabManual">Manual</button></div>
+  <div id="paneCari"><input id="q" placeholder="Cari: nasi, ayam, tempe..." autocomplete="off"><div class="list" id="foods"></div></div>
+  <div id="paneManual" style="display:none">
+    <label>Nama makanan</label><input id="mName" placeholder="mis. Bakso">
+    <div class="row" style="margin-top:8px"><div><label>Kalori (kkal)</label><input id="mCal" type="number" inputmode="decimal"></div><div><label>Protein (g)</label><input id="mPro" type="number" inputmode="decimal"></div></div>
+    <div class="row" style="margin-top:8px"><div><label>Karbo (g)</label><input id="mCarb" type="number" inputmode="decimal"></div><div><label>Lemak (g)</label><input id="mFat" type="number" inputmode="decimal"></div></div>
+    <button style="width:100%;margin-top:12px" id="saveManual">Simpan ke makan</button>
+  </div>
+</div></div>
+
+<!-- Porsi -->
+<div class="sheet" id="portionSheet"><div class="panel">
+  <div class="top"><h2 id="pName" style="margin:0"></h2><button class="x" data-close>✕</button></div>
+  <p class="mute" id="pUnit"></p>
+  <label style="margin-top:10px">Jumlah porsi</label><input id="pQty" type="number" step="0.5" min="0.5" value="1" inputmode="decimal">
+  <p style="margin:12px 0;font-weight:600" id="pTotal"></p>
+  <button style="width:100%" id="pAdd">Tambahkan</button>
+</div></div>
+
+<!-- Target -->
+<div class="sheet" id="setSheet"><div class="panel">
+  <div class="top"><h2 style="margin:0">Target kalori</h2><button class="x" data-close>✕</button></div>
+  <label>Hitung otomatis (rumus Mifflin-St Jeor)</label>
+  <div class="row"><div><label>Jenis kelamin</label><select id="sSex"><option value="m">Pria</option><option value="f">Wanita</option></select></div><div><label>Usia</label><input id="sAge" type="number" inputmode="numeric" value="30"></div></div>
+  <div class="row" style="margin-top:8px"><div><label>Berat (kg)</label><input id="sW" type="number" inputmode="decimal" value="65"></div><div><label>Tinggi (cm)</label><input id="sH" type="number" inputmode="decimal" value="165"></div></div>
+  <label style="margin-top:8px">Aktivitas</label>
+  <select id="sAct"><option value="1.2">Jarang bergerak (kerja duduk)</option><option value="1.375" selected>Ringan (olahraga 1–3x/minggu)</option><option value="1.55">Sedang (3–5x/minggu)</option><option value="1.725">Berat (6–7x/minggu)</option></select>
+  <label style="margin-top:8px">Tujuan</label>
+  <select id="sGoal"><option value="-500">Turun berat badan (−500 kkal)</option><option value="0" selected>Jaga berat badan</option><option value="300">Naik berat badan (+300 kkal)</option></select>
+  <button class="ghost" style="width:100%;margin-top:12px" id="sCalc">Hitung</button>
+  <label style="margin-top:12px">Target harian (kkal)</label><input id="sTarget" type="number" inputmode="numeric">
+  <p class="mute" id="sInfo" style="margin-top:6px"></p>
+  <button style="width:100%;margin-top:12px" id="sSave">Simpan target</button>
+</div></div>
+
+<script>
+// nama, satuan porsi, kkal, protein, karbo, lemak
+var FOODS=[
+["Nasi putih","1 piring (150 g)",195,3.5,42,0.3],
+["Nasi merah","1 piring (150 g)",165,3.5,35,1.2],
+["Nasi goreng","1 piring",330,8,48,11],
+["Bubur ayam","1 mangkuk",300,12,45,7],
+["Lontong","1 potong (100 g)",120,2.5,26,0.3],
+["Mie goreng","1 piring",400,10,55,15],
+["Mie instan rebus","1 bungkus",380,8,54,14],
+["Mie ayam","1 mangkuk",420,16,58,13],
+["Bihun goreng","1 piring",340,7,52,11],
+["Roti tawar","1 lembar",70,2.3,13,1],
+["Roti isi cokelat","1 buah",250,5,38,8],
+["Oatmeal","1 mangkuk (matang)",150,5,27,3],
+["Ayam goreng","1 potong (paha)",250,19,6,17],
+["Ayam bakar","1 potong",210,22,3,12],
+["Dada ayam rebus","100 g",165,31,0,3.6],
+["Sate ayam","10 tusuk",330,28,10,19],
+["Rendang daging","1 potong (50 g)",195,15,3,14],
+["Daging sapi","100 g",250,26,0,15],
+["Ikan goreng","1 ekor sedang",220,22,3,13],
+["Ikan bakar","1 potong",160,24,0,7],
+["Telur rebus","1 butir",75,6.3,0.5,5],
+["Telur dadar","1 butir",110,7,0.5,8.5],
+["Telur mata sapi","1 butir",90,6,0.5,7],
+["Tempe goreng","1 potong",75,4,5,4.5],
+["Tempe bacem","1 potong",90,5,8,4],
+["Tahu goreng","1 potong",35,2.5,1,2.5],
+["Tahu putih","1 potong (50 g)",40,4,1,2.5],
+["Perkedel","1 buah",90,3,10,4],
+["Gado-gado","1 piring",300,12,28,16],
+["Pecel","1 piring",290,11,30,14],
+["Sayur bayam","1 mangkuk",50,3,7,1],
+["Sayur asem","1 mangkuk",60,2,12,0.5],
+["Capcay","1 piring",130,6,12,7],
+["Tumis kangkung","1 porsi",90,3,6,6],
+["Soto ayam","1 mangkuk",250,18,15,13],
+["Bakso","1 mangkuk (5 butir)",350,18,38,13],
+["Sop buntut","1 mangkuk",330,22,10,22],
+["Rawon","1 mangkuk",280,20,10,17],
+["Nasi uduk","1 piring",360,6,52,13],
+["Nasi kuning","1 piring",330,6,52,10],
+["Nasi padang (nasi+rendang+sayur)","1 porsi",650,25,75,26],
+["Nasi campur Bali","1 porsi",620,28,70,24],
+["Martabak telur","1 potong",290,10,24,17],
+["Gorengan (bakwan)","1 buah",95,2,10,5],
+["Pisang goreng","1 buah",150,1.5,25,5],
+["Tahu isi","1 buah",75,3,7,4],
+["Lumpia","1 buah",110,3,11,6],
+["Kerupuk","1 genggam (10 g)",55,0.5,8,2.5],
+["Pisang","1 buah",90,1,23,0.3],
+["Apel","1 buah",75,0.4,20,0.3],
+["Jeruk","1 buah",60,1,15,0.2],
+["Pepaya","1 potong (100 g)",45,0.5,12,0.1],
+["Semangka","1 potong (150 g)",45,0.9,11,0.2],
+["Mangga","1 buah",100,1,25,0.5],
+["Alpukat","1/2 buah",160,2,9,15],
+["Susu sapi","1 gelas (250 ml)",150,8,12,8],
+["Yogurt plain","1 cup (150 g)",90,5,7,4],
+["Kopi hitam","1 cangkir",5,0.3,0,0],
+["Kopi susu gula aren","1 gelas",200,3,30,7],
+["Teh manis","1 gelas",90,0,22,0],
+["Teh tawar","1 gelas",2,0,0,0],
+["Es jeruk","1 gelas",110,0.5,27,0],
+["Jus alpukat","1 gelas",300,4,30,18],
+["Minuman bersoda","1 kaleng",140,0,35,0],
+["Air putih","1 gelas",0,0,0,0],
+["Kacang tanah","1 genggam (30 g)",170,7,5,14],
+["Biskuit","3 keping",120,2,18,4.5],
+["Cokelat batang","1 batang (40 g)",210,3,23,12],
+["Es krim","1 scoop",140,2.5,16,7],
+["Keripik kentang","1 bungkus kecil (30 g)",160,2,15,10],
+["Kentang rebus","1 buah",110,2.5,25,0.2],
+["Ubi rebus","1 buah",120,1.5,28,0.2],
+["Singkong rebus","1 potong (100 g)",150,1,36,0.3],
+["Minyak goreng","1 sdm",120,0,0,14],
+["Gula pasir","1 sdt",16,0,4,0]
+];
+var MEALS=["Sarapan","Makan siang","Makan malam","Camilan"];
+var S={log:{},custom:[],target:2000};
+try{var raw=localStorage.getItem("kalori_v1");if(raw){var p=JSON.parse(raw);S.log=p.log||{};S.custom=p.custom||[];S.target=p.target||2000}}catch(e){}
+function save(){try{localStorage.setItem("kalori_v1",JSON.stringify(S))}catch(e){}}
+var $=function(id){return document.getElementById(id)};
+function ymd(d){var z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)}
+var cur=ymd(new Date());
+function day(k){return S.log[k]||(S.log[k]=[[],[],[],[]])}
+function r(n){return Math.round(n)}
+function totals(k){var t={c:0,p:0,k:0,l:0};(S.log[k]||[]).forEach(function(m){m.forEach(function(i){t.c+=i.c;t.p+=i.p;t.k+=i.k;t.l+=i.l})});return t}
+
+function render(){
+  $("date").value=cur;
+  var t=totals(cur),tg=S.target,pct=Math.min(t.c/tg,1);
+  $("eaten").textContent=r(t.c);
+  $("arc").style.strokeDashoffset=314*(1-pct);
+  $("arc").style.stroke=t.c>tg?"#c8453b":(t.c>tg*0.9?"#d9822b":"#2f7d57");
+  $("target").textContent="Target "+tg+" kkal";
+  var left=tg-t.c;
+  $("left").textContent=left>=0?"Sisa "+r(left)+" kkal":"Lebih "+r(-left)+" kkal";
+  $("left").style.color=left>=0?"var(--g)":"var(--r)";
+  $("mP").textContent=r(t.p);$("mK").textContent=r(t.k);$("mL").textContent=r(t.l);
+  var h="";
+  var d=S.log[cur]||[[],[],[],[]];
+  MEALS.forEach(function(name,mi){
+    var items=d[mi]||[],sum=items.reduce(function(a,i){return a+i.c},0);
+    h+='<div class="card meal"><h3><span>'+name+'</span><span>'+r(sum)+' kkal</span></h3>';
+    if(!items.length)h+='<div class="empty">Belum ada makanan</div>';
+    items.forEach(function(i,ii){h+='<div class="item"><div>'+esc(i.n)+'<small>'+i.q+' × '+esc(i.u)+' · '+r(i.c)+' kkal</small></div><button class="x" data-del="'+mi+','+ii+'">✕</button></div>'});
+    h+='<button class="ghost" style="width:100%;margin-top:8px" data-add="'+mi+'">+ Tambah</button></div>';
+  });
+  $("meals").innerHTML=h;
+  var w="",mx=tg;
+  var days=[];for(var i=6;i>=0;i--){var dt=new Date();dt.setDate(dt.getDate()-i);days.push(dt)}
+  days.forEach(function(dt){mx=Math.max(mx,totals(ymd(dt)).c)});
+  days.forEach(function(dt){var c=totals(ymd(dt)).c;w+='<div><span>'+r(c)+'</span><i style="height:'+(c/mx*60)+'px;'+(c>tg?'background:#c8453b':'')+'"></i><span>'+["Mi","Sn","Sl","Rb","Km","Jm","Sb"][dt.getDay()]+'</span></div>'});
+  $("week").innerHTML=w;
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+var addMeal=0,pick=null;
+function open(id){$(id).classList.add("on")}
+function close(){document.querySelectorAll(".sheet").forEach(function(s){s.classList.remove("on")})}
+document.querySelectorAll("[data-close]").forEach(function(b){b.onclick=close});
+document.querySelectorAll(".sheet").forEach(function(s){s.onclick=function(e){if(e.target===s)close()}});
+
+$("meals").onclick=function(e){
+  var a=e.target.getAttribute("data-add"),d=e.target.getAttribute("data-del");
+  if(a!==null){addMeal=+a;$("addTitle").textContent="Tambah ke "+MEALS[addMeal];$("q").value="";list();showTab("cari");open("addSheet")}
+  if(d!==null){var p=d.split(",");day(cur)[+p[0]].splice(+p[1],1);save();render()}
+};
+function all(){return S.custom.concat(FOODS)}
+function list(){
+  var q=$("q").value.toLowerCase().trim(),h="",n=0;
+  all().forEach(function(f,i){
+    if(q&&f[0].toLowerCase().indexOf(q)<0)return;
+    if(++n>60)return;
+    h+='<div class="food" data-i="'+i+'"><div>'+esc(f[0])+'<small>'+esc(f[1])+'</small></div><b>'+f[2]+' kkal</b></div>';
+  });
+  $("foods").innerHTML=h||'<div class="empty">Tidak ditemukan. Coba tab Manual untuk menambah sendiri.</div>';
+}
+$("q").oninput=list;
+$("foods").onclick=function(e){
+  var el=e.target.closest(".food");if(!el)return;
+  pick=all()[+el.getAttribute("data-i")];
+  $("pName").textContent=pick[0];$("pUnit").textContent="1 porsi = "+pick[1]+" · "+pick[2]+" kkal";
+  $("pQty").value=1;upd();open("portionSheet");
+};
+function upd(){var q=parseFloat($("pQty").value)||0;$("pTotal").textContent=r(pick[2]*q)+" kkal"}
+$("pQty").oninput=upd;
+$("pAdd").onclick=function(){
+  var q=parseFloat($("pQty").value);if(!(q>0))return;
+  day(cur)[addMeal].push({n:pick[0],u:pick[1],q:q,c:pick[2]*q,p:pick[3]*q,k:pick[4]*q,l:pick[5]*q});
+  save();close();render();
+};
+function showTab(t){
+  $("paneCari").style.display=t==="cari"?"":"none";$("paneManual").style.display=t==="cari"?"none":"";
+  $("tabCari").className=t==="cari"?"on":"";$("tabManual").className=t==="cari"?"":"on";
+}
+$("tabCari").onclick=function(){showTab("cari")};$("tabManual").onclick=function(){showTab("manual")};
+$("saveManual").onclick=function(){
+  var n=$("mName").value.trim(),c=parseFloat($("mCal").value);
+  if(!n||!(c>=0)){return}
+  var p=parseFloat($("mPro").value)||0,k=parseFloat($("mCarb").value)||0,l=parseFloat($("mFat").value)||0;
+  S.custom.unshift([n,"1 porsi",c,p,k,l]);
+  day(cur)[addMeal].push({n:n,u:"1 porsi",q:1,c:c,p:p,k:k,l:l});
+  ["mName","mCal","mPro","mCarb","mFat"].forEach(function(i){$(i).value=""});
+  save();close();render();
+};
+
+function shift(n){var d=new Date(cur+"T00:00:00");d.setDate(d.getDate()+n);cur=ymd(d);render()}
+$("prev").onclick=function(){shift(-1)};$("next").onclick=function(){shift(1)};
+$("date").onchange=function(){if(this.value){cur=this.value;render()}};
+
+function calc(){
+  var w=+$("sW").value,h=+$("sH").value,a=+$("sAge").value;
+  var bmr=10*w+6.25*h-5*a+($("sSex").value==="m"?5:-161);
+  var tdee=bmr*+$("sAct").value,t=Math.round((tdee+ +$("sGoal").value)/10)*10;
+  $("sTarget").value=t;
+  $("sInfo").textContent="BMR "+r(bmr)+" kkal, kebutuhan harian "+r(tdee)+" kkal.";
+}
+$("sCalc").onclick=calc;
+$("btnSet").onclick=function(){$("sTarget").value=S.target;$("sInfo").textContent="";open("setSheet")};
+$("sSave").onclick=function(){var t=parseInt($("sTarget").value);if(t>0){S.target=t;save();close();render()}};
+render();
+try{if("serviceWorker"in navigator&&location.protocol.indexOf("http")===0)navigator.serviceWorker.register("sw.js")}catch(e){}
+</script>
+</body>
+</html>
